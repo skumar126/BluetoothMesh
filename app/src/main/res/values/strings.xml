@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">My Bluetooth Mesh</string>
+    <string name="edge">Hello — edge to edge &amp; toolbar example</string>
 </resources>
