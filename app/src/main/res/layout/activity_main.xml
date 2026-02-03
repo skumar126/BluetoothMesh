@@ -32,6 +32,7 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
+            android:layout_margin="20dp"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
@@ -41,8 +42,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/bt_mesh"
-                android:textSize="18sp"
-                android:textColor="@android:color/black"
+                android:textAllCaps="true"
+                android:textStyle="bold"
+                android:textSize="28sp"
+                android:textColor="@color/red"
                 android:paddingBottom="8dp"/>
 
             <androidx.recyclerview.widget.RecyclerView
