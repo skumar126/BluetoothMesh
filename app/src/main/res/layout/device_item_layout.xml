@@ -9,16 +9,32 @@
         android:id="@+id/deviceName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Device Name"
+        android:text="@string/device_name"
         android:textSize="16sp" />
 
     <TextView
         android:id="@+id/deviceAddress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="MAC Address"
+        android:text="@string/mac_address"
         android:textSize="14sp"
         android:textColor="#888" />
+
+    <TextView
+        android:id="@+id/deviceRssi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/mac_address"
+        android:textSize="14sp"
+        android:textColor="#888" />
+
+    <TextView
+        android:id="@+id/deviceStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/mac_address"
+        android:textSize="14sp"
+         />
 
 
 </LinearLayout>

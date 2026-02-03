@@ -16,8 +16,6 @@ import android.os.Bundle
 import android.os.ParcelUuid
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.result.ActivityResult
-import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
@@ -27,11 +25,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.mesh.myapplication.adapter.DeviceAdapter
 import com.mesh.myapplication.databinding.ActivityMainBinding
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.ThreadContextElement
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
@@ -39,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var bluetoothLeScanner: BluetoothLeScanner
-    private val scanResults = mutableListOf<BluetoothDevice>()
+    private val scanResults = mutableListOf<ScanResult>()
     private lateinit var recyclerViewAdapter: DeviceAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -183,8 +178,8 @@ class MainActivity : AppCompatActivity() {
                 "MESH",
                 "Mesh device Info: record$record - byte:$bytes"
             )
-            if (!scanResults.contains(device)) {
-                scanResults.add(device)
+            if (!scanResults.contains(result)) {
+                scanResults.add(result)
                 recyclerViewAdapter.notifyItemInserted(scanResults.size - 1)
             }
         }
@@ -198,8 +193,8 @@ class MainActivity : AppCompatActivity() {
             super.onBatchScanResults(results)
             for (result in results) {
                 val device = result.device
-                if (!scanResults.contains(device)) {
-                    scanResults.add(device)
+                if (!scanResults.contains(result)) {
+                    scanResults.add(result)
                     recyclerViewAdapter.notifyItemInserted(scanResults.size - 1)
                 }
             }

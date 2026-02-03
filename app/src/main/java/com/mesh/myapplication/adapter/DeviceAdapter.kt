@@ -2,17 +2,20 @@ package com.mesh.myapplication.adapter
 
 import android.Manifest
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.le.ScanResult
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.annotation.RequiresPermission
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.mesh.myapplication.MainActivity.Companion.MESH_PROVISIONING_UUID
 import com.mesh.myapplication.R
 
 class DeviceAdapter(
-    private val devices: MutableList<BluetoothDevice>,
-   /* private val clickListener: (BluetoothDevice) -> Unit*/
+    private val devices: MutableList<ScanResult>,
+    /* private val clickListener: (BluetoothDevice) -> Unit*/
 ) : RecyclerView.Adapter<DeviceAdapter.DeviceViewHolder>() {
 
 
@@ -30,9 +33,19 @@ class DeviceAdapter(
         holder: DeviceViewHolder,
         position: Int
     ) {
-        val devices = devices[position]
-        holder.deviceName.text = devices.name ?: "Unknown Device"
-        holder.deviceAddress.text = devices.address
+        val scannedDevice = devices[position]
+        holder.deviceName.text = scannedDevice.device.name ?: "Unknown Device"
+        holder.deviceAddress.text = scannedDevice.device.address
+        holder.deviceRssi.text = "RSSI :" + scannedDevice.rssi
+        val serviceUUID = scannedDevice.scanRecord?.serviceUuids
+        val isUnprovisioned = serviceUUID?.any {
+            it.uuid == MESH_PROVISIONING_UUID
+        } == true
+        val status = if (isUnprovisioned) "UNPROVISIONED" else "PROVISIONED"
+        val col = if (isUnprovisioned) R.color.green else R.color.red
+        holder.devicesStatus.text = "Status: " + status
+        holder.devicesStatus.setTextColor(ContextCompat.getColor(holder.itemView.context, col))
+
     }
 
     override fun getItemCount(): Int {
@@ -42,9 +55,11 @@ class DeviceAdapter(
     inner class DeviceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val deviceName: TextView = itemView.findViewById<TextView>(R.id.deviceName)
         val deviceAddress: TextView = itemView.findViewById(R.id.deviceAddress)
+        val deviceRssi: TextView = itemView.findViewById(R.id.deviceRssi)
+        val devicesStatus: TextView = itemView.findViewById(R.id.deviceStatus)
     }
 
-    fun updateDevices(newDevices: List<BluetoothDevice>) {
+    fun updateDevices(newDevices: List<ScanResult>) {
         devices.clear()
         devices.addAll(newDevices)
         notifyDataSetChanged() // Notify RecyclerView to refresh
