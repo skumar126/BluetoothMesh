@@ -2,6 +2,7 @@ package com.mesh.myapplication
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -18,12 +19,16 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.mesh.myapplication.adapter.DeviceAdapter
 import com.mesh.myapplication.databinding.ActivityMainBinding
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.ThreadContextElement
@@ -34,6 +39,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var bluetoothLeScanner: BluetoothLeScanner
+    private val scanResults = mutableListOf<BluetoothDevice>()
+    private lateinit var recyclerViewAdapter: DeviceAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,8 +60,13 @@ class MainActivity : AppCompatActivity() {
         bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
         //Permission
         checkAnsRequestPermission()
+
+        recyclerViewAdapter = DeviceAdapter(scanResults)
+        binding.deviceList.layoutManager = LinearLayoutManager(this)
+        binding.deviceList.adapter = recyclerViewAdapter
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     private fun checkAnsRequestPermission() {
         if (!hasPermission()) {
             permissionLauncher.launch(requiredPermission())
@@ -152,25 +164,64 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private val scanCallback = object : ScanCallback() {
+    private val scanCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    object : ScanCallback() {
         @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             super.onScanResult(callbackType, result)
             val device = result.device
             val name = device.name ?: "Unknown"
             val rssi = result.rssi
+            val record = result.scanRecord ?: return
+            val bytes = record.bytes ?: return
 
             Log.d(
                 "MESH",
-                "Mesh device found: $name - ${device.address}, RSSI=$rssi"
+                "Mesh device found: $name - ${device.address}, RSSI=${rssi}"
             )
+            Log.d(
+                "MESH",
+                "Mesh device Info: record$record - byte:$bytes"
+            )
+            if (!scanResults.contains(device)) {
+                scanResults.add(device)
+                recyclerViewAdapter.notifyItemInserted(scanResults.size - 1)
+            }
         }
 
         override fun onScanFailed(errorCode: Int) {
             super.onScanFailed(errorCode)
             Log.e("BLE", "Scan failed: $errorCode")
         }
+
+        override fun onBatchScanResults(results: List<ScanResult>) {
+            super.onBatchScanResults(results)
+            for (result in results) {
+                val device = result.device
+                if (!scanResults.contains(device)) {
+                    scanResults.add(device)
+                    recyclerViewAdapter.notifyItemInserted(scanResults.size - 1)
+                }
+            }
+        }
     }
+
+
+    fun containsMeshBeacon(scanData: ByteArray): Boolean {
+        var index = 0
+        while (index < scanData.size) {
+            val length = scanData[index].toInt()
+            if (length == 0) break
+
+            val type = scanData[index + 1].toInt() and 0xFF
+            if (type == 0x2B) {
+                return true
+            }
+            index += length + 1
+        }
+        return false
+    }
+
 
     companion object {
 
