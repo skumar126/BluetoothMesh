@@ -55,7 +55,19 @@ class MainActivity : AppCompatActivity() {
         //Permission
         checkAnsRequestPermission()
 
-        recyclerViewAdapter = DeviceAdapter(scanResults)
+        recyclerViewAdapter = DeviceAdapter(scanResults){ clickedItem ->
+            Log.d("RV_CLICK", "Clicked: ${clickedItem.device.address}")
+            Toast.makeText(this,"Clicked: ${clickedItem.device.address}", Toast.LENGTH_SHORT).show()
+            val isUnprovisioned = clickedItem.device.uuids?.any {
+                it.uuid == MESH_PROVISIONING_UUID
+            } == true
+            if (isUnprovisioned) {
+                // start provisioning
+                Toast.makeText(this,"Clicked: Provision", Toast.LENGTH_SHORT).show()
+            } else {
+                // open device details
+            }
+        }
         binding.deviceList.layoutManager = LinearLayoutManager(this)
         binding.deviceList.adapter = recyclerViewAdapter
     }

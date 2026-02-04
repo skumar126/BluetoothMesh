@@ -15,7 +15,7 @@ import com.mesh.myapplication.R
 
 class DeviceAdapter(
     private val devices: MutableList<ScanResult>,
-    /* private val clickListener: (BluetoothDevice) -> Unit*/
+    private val onItemClick: (ScanResult) -> Unit
 ) : RecyclerView.Adapter<DeviceAdapter.DeviceViewHolder>() {
 
 
@@ -46,6 +46,10 @@ class DeviceAdapter(
         holder.devicesStatus.text = "Status: " + status
         holder.devicesStatus.setTextColor(ContextCompat.getColor(holder.itemView.context, col))
 
+        holder.deviceParent.setOnClickListener {
+            onItemClick(devices[holder.])
+        }
+
     }
 
     override fun getItemCount(): Int {
@@ -53,10 +57,20 @@ class DeviceAdapter(
     }
 
     inner class DeviceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val deviceParent: View = itemView.findViewById(R.id.deviceParent)
         val deviceName: TextView = itemView.findViewById<TextView>(R.id.deviceName)
         val deviceAddress: TextView = itemView.findViewById(R.id.deviceAddress)
         val deviceRssi: TextView = itemView.findViewById(R.id.deviceRssi)
         val devicesStatus: TextView = itemView.findViewById(R.id.deviceStatus)
+
+        init {
+            itemView.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onItemClick(itemView[position])
+                }
+            }
+        }
     }
 
     fun updateDevices(newDevices: List<ScanResult>) {
