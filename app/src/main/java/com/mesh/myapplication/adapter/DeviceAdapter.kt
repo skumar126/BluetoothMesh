@@ -47,7 +47,7 @@ class DeviceAdapter(
         holder.devicesStatus.setTextColor(ContextCompat.getColor(holder.itemView.context, col))
 
         holder.deviceParent.setOnClickListener {
-            onItemClick(devices[holder.])
+            onItemClick(devices[holder])
         }
 
     }

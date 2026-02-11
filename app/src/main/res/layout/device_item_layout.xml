@@ -5,41 +5,48 @@
     android:orientation="vertical"
     android:padding="9dp">
 
-    <LinearLayout
-        android:id="@+id/deviceParent"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+    <androidx.cardview.widget.CardView
+        android:background="@color/green"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/deviceName"
+        <LinearLayout
+
+            android:id="@+id/deviceParent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/device_name"
-            android:textSize="16sp" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/deviceAddress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/mac_address"
-            android:textColor="#888"
-            android:textSize="14sp" />
+            <TextView
+                android:id="@+id/deviceName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/device_name"
+                android:textSize="16sp" />
 
-        <TextView
-            android:id="@+id/deviceRssi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/mac_address"
-            android:textColor="#888"
-            android:textSize="14sp" />
+            <TextView
+                android:id="@+id/deviceAddress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/mac_address"
+                android:textColor="#888"
+                android:textSize="14sp" />
 
-        <TextView
-            android:id="@+id/deviceStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/mac_address"
-            android:textSize="14sp" />
+            <TextView
+                android:id="@+id/deviceRssi"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/mac_address"
+                android:textColor="#888"
+                android:textSize="14sp" />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/deviceStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/mac_address"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 </LinearLayout>
