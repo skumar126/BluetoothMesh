@@ -8,4 +8,12 @@
     <string name="mac_address">MAC Address</string>
     <string name="bluetooth_required">Turn on Bluetooth to scan mesh devices</string>
     <string name="bluetooth_not_supported">This device does not support Bluetooth</string>
+    <string name="mesh_networks">Mesh Networks</string>
+    <string name="no_mesh_networks">No mesh networks yet.\nTap + to create one.</string>
+    <string name="create_mesh">Create mesh</string>
+    <string name="create">Create</string>
+    <string name="mesh_name_hint">Network name</string>
+    <string name="mesh_name_required">Enter a network name</string>
+    <string name="created_date_format">Created: %1$s</string>
+    <string name="modified_date_format">Modified: %1$s</string>
 </resources>

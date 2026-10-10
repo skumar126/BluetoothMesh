@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.mesh.myapplication.MainActivity.Companion.MESH_PROVISIONING_UUID
+import com.mesh.myapplication.Constants
 import com.mesh.myapplication.R
 
 class DeviceAdapter(
@@ -38,7 +38,7 @@ class DeviceAdapter(
         holder.deviceRssi.text = "RSSI :" + scannedDevice.rssi
         val serviceUUID = scannedDevice.scanRecord?.serviceUuids
         val isUnprovisioned = serviceUUID?.any {
-            it.uuid == MESH_PROVISIONING_UUID
+            it.uuid == Constants.MESH_PROVISIONING_UUID
         } == true
         val status = if (isUnprovisioned) "UNPROVISIONED" else "PROVISIONED"
         val col = if (isUnprovisioned) R.color.green else R.color.red

@@ -1,169 +1,92 @@
 package com.mesh.myapplication
 
-import android.Manifest
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import android.bluetooth.le.BluetoothLeScanner
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
-import android.bluetooth.le.ScanResult
-import android.bluetooth.le.ScanSettings
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
-import android.os.ParcelUuid
-import android.util.Log
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
-import androidx.annotation.RequiresPermission
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.mesh.myapplication.adapter.DeviceAdapter
+import com.mesh.myapplication.adapter.MeshNetworkAdapter
 import com.mesh.myapplication.databinding.ActivityMainBinding
-import java.util.UUID
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private lateinit var networkAdapter: MeshNetworkAdapter
 
-    private var bluetoothAdapter: BluetoothAdapter? = null
-    private var bluetoothLeScanner: BluetoothLeScanner? = null
-    private val scanResults = mutableListOf<ScanResult>()
-    private lateinit var recyclerViewAdapter: DeviceAdapter
+    private val meshRepository by lazy {
+        (application as BluetoothMeshApp).meshRepository
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        // 1. Enable edge-to-edge
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        // 3. Setup AppBar / Toolbar
         setSupportActionBar(binding.toolbar)
-
-        // 4. Apply window insets to toolbar and content
         applyEdgeToEdge()
 
-        val bluetoothManager =
-            getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothAdapter = bluetoothManager.adapter
-        checkAnsRequestPermission()
+        networkAdapter = MeshNetworkAdapter { network ->
+            startActivity(
+                Intent(this, MeshScanActivity::class.java).putExtra(
+                    MeshScanActivity.EXTRA_NETWORK_NAME,
+                    network.name
+                )
+            )
+        }
+        binding.networkList.layoutManager = LinearLayoutManager(this)
+        binding.networkList.adapter = networkAdapter
+        binding.addMeshButton.setOnClickListener { showCreateMeshDialog() }
 
-        recyclerViewAdapter = DeviceAdapter(scanResults){ clickedItem ->
-            Log.d("RV_CLICK", "Clicked: ${clickedItem.device.address}")
-            Toast.makeText(this,"Clicked: ${clickedItem.device.address}", Toast.LENGTH_SHORT).show()
-            val isUnprovisioned = clickedItem.device.uuids?.any {
-                it.uuid == MESH_PROVISIONING_UUID
-            } == true
-            if (isUnprovisioned) {
-                // start provisioning
-                Toast.makeText(this,"Clicked: Provision", Toast.LENGTH_SHORT).show()
-            } else {
-                // open device details
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                meshRepository.observeMeshes().collect { networks ->
+                    networkAdapter.submitList(networks)
+                    binding.emptyView.isVisible = networks.isEmpty()
+                    binding.networkList.isVisible = networks.isNotEmpty()
+                }
             }
         }
-        binding.deviceList.layoutManager = LinearLayoutManager(this)
-        binding.deviceList.adapter = recyclerViewAdapter
     }
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
-    private fun checkAnsRequestPermission() {
-        if (!hasPermission()) {
-            permissionLauncher.launch(requiredPermission())
-        } else {
-            ensureBluetoothEnabled()
+    private fun showCreateMeshDialog() {
+        val input = EditText(this).apply {
+            hint = getString(R.string.mesh_name_hint)
+            setSingleLine()
         }
-    }
-
-    private val handler = android.os.Handler()
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
-    private fun startTimedScan() {
-        startBluetooth()
-        handler.postDelayed({ stopBleScan() }, 10_000)
-    }
-
-    private fun ensureBluetoothEnabled() {
-        val adapter = bluetoothAdapter
-        if (adapter == null) {
-            Toast.makeText(
-                this,
-                getString(R.string.bluetooth_not_supported),
-                Toast.LENGTH_LONG
-            ).show()
-            return
+        val padding = (20 * resources.displayMetrics.density).toInt()
+        val container = FrameLayout(this).apply {
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
         }
-        if (adapter.isEnabled) {
-            startTimedScan()
-        } else {
-            enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-        }
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
-    private fun startBluetooth() {
-        val scanner = bluetoothAdapter?.bluetoothLeScanner
-        if (scanner == null) {
-            Toast.makeText(
-                this,
-                getString(R.string.bluetooth_required),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        bluetoothLeScanner = scanner
-
-        val meshProvisioningFilter = ScanFilter.Builder()
-            .setServiceUuid(ParcelUuid(MESH_PROVISIONING_UUID))
-            .build()
-
-        val meshProxyFilter = ScanFilter.Builder()
-            .setServiceUuid(ParcelUuid(MESH_PROXY_UUID))
-            .build()
-        val scanSettings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-            .build()
-
-        scanner.startScan(
-            listOf(meshProvisioningFilter, meshProxyFilter), scanSettings, scanCallback
-        )
-
-        Log.d("BLE", "Scanning started")
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
-    private fun stopBleScan() {
-        bluetoothLeScanner?.stopScan(scanCallback)
-        Log.d("BLE", "Scanning stopped")
-    }
-
-
-    private fun hasPermission(): Boolean {
-        return requiredPermission().all {
-            ContextCompat.checkSelfPermission(
-                this,
-                it
-            ) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-
-    private fun requiredPermission(): Array<String> {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            arrayOf(
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT
-            )
-        } else {
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.create_mesh)
+            .setView(container)
+            .setPositiveButton(R.string.create) { _, _ ->
+                val name = input.text.toString().trim()
+                if (name.isEmpty()) {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.mesh_name_required),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    lifecycleScope.launch {
+                        meshRepository.createMesh(name)
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun applyEdgeToEdge() {
@@ -179,104 +102,4 @@ class MainActivity : AppCompatActivity() {
             insets
         }
     }
-
-
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permission ->
-        val allGranted = permission.values.all { it }
-        if (allGranted) {
-            ensureBluetoothEnabled()
-        } else {
-            Toast.makeText(
-                this,
-                "Permission required for Bluetooth",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    private val enableBluetoothLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) {
-        if (bluetoothAdapter?.isEnabled == true) {
-            startTimedScan()
-        } else {
-            Toast.makeText(
-                this,
-                getString(R.string.bluetooth_required),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-
-    private val scanCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    object : ScanCallback() {
-        @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-        override fun onScanResult(callbackType: Int, result: ScanResult) {
-            super.onScanResult(callbackType, result)
-            val device = result.device
-            val name = device.name ?: "Unknown"
-            val rssi = result.rssi
-            val record = result.scanRecord ?: return
-            val bytes = record.bytes ?: return
-
-            Log.d(
-                "MESH",
-                "Mesh device found: $name - ${device.address}, RSSI=${rssi}"
-            )
-            Log.d(
-                "MESH",
-                "Mesh device Info: record$record - byte:$bytes"
-            )
-            if (!scanResults.contains(result)) {
-                scanResults.add(result)
-                recyclerViewAdapter.notifyItemInserted(scanResults.size - 1)
-            }
-        }
-
-        override fun onScanFailed(errorCode: Int) {
-            super.onScanFailed(errorCode)
-            Log.e("BLE", "Scan failed: $errorCode")
-        }
-
-        override fun onBatchScanResults(results: List<ScanResult>) {
-            super.onBatchScanResults(results)
-            for (result in results) {
-                val device = result.device
-                if (!scanResults.contains(result)) {
-                    scanResults.add(result)
-                    recyclerViewAdapter.notifyItemInserted(scanResults.size - 1)
-                }
-            }
-        }
-    }
-
-
-    fun containsMeshBeacon(scanData: ByteArray): Boolean {
-        var index = 0
-        while (index < scanData.size) {
-            val length = scanData[index].toInt()
-            if (length == 0) break
-
-            val type = scanData[index + 1].toInt() and 0xFF
-            if (type == 0x2B) {
-                return true
-            }
-            index += length + 1
-        }
-        return false
-    }
-
-
-    companion object {
-
-        val MESH_PROVISIONING_UUID =
-            UUID.fromString("00001827-0000-1000-8000-00805F9B34FB")
-
-        val MESH_PROXY_UUID =
-            UUID.fromString("00001828-0000-1000-8000-00805F9B34FB")
-    }
 }
-
