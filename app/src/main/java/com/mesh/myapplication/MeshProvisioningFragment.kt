@@ -34,7 +34,7 @@ import android.provider.Settings
  */
 class MeshProvisioningFragment : Fragment() {
 
-    private lateinit var scanner: BluetoothLeScanner
+    private var scanner: BluetoothLeScanner? = null
     private val adapter = MeshDeviceAdapter()
     private val devices = mutableMapOf<String, MeshDevice>()
     private lateinit var binding: FragmentMeshProvisioningBinding
@@ -42,7 +42,7 @@ class MeshProvisioningFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        scanner = BluetoothAdapter.getDefaultAdapter().bluetoothLeScanner
+        scanner = BluetoothAdapter.getDefaultAdapter()?.bluetoothLeScanner
 
     }
 
@@ -107,7 +107,7 @@ class MeshProvisioningFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        scanner.stopScan(scanCallBack)
+        scanner?.stopScan(scanCallBack)
     }
 
     private fun showPermissionDeniedDialog() {
@@ -125,6 +125,16 @@ class MeshProvisioningFragment : Fragment() {
             .show()
     }
     private fun startMeshScanning() {
+        val bluetoothLeScanner = BluetoothAdapter.getDefaultAdapter()?.bluetoothLeScanner
+        if (bluetoothLeScanner == null) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.bluetooth_required),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        scanner = bluetoothLeScanner
         devices.clear()
         val filter = ScanFilter.Builder()
             .setServiceUuid(ParcelUuid(MESH_PROVISIONING_UUID))
@@ -134,7 +144,7 @@ class MeshProvisioningFragment : Fragment() {
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
 
-        scanner.startScan(
+        bluetoothLeScanner.startScan(
             listOf(filter),
             setting, scanCallBack
         )

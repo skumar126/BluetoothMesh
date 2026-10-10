@@ -1,7 +1,6 @@
 package com.mesh.myapplication.adapter
 
 import android.Manifest
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.ScanResult
 import android.view.LayoutInflater
 import android.view.View
@@ -45,11 +44,6 @@ class DeviceAdapter(
         val col = if (isUnprovisioned) R.color.green else R.color.red
         holder.devicesStatus.text = "Status: " + status
         holder.devicesStatus.setTextColor(ContextCompat.getColor(holder.itemView.context, col))
-
-        holder.deviceParent.setOnClickListener {
-            
-        }
-
     }
 
     override fun getItemCount(): Int {
@@ -65,9 +59,9 @@ class DeviceAdapter(
 
         init {
             itemView.setOnClickListener {
-                val position = bindingAdapterPosition
+                val position = adapterPosition
                 if (position != RecyclerView.NO_POSITION) {
-                    onItemClick(itemView[position])
+                    onItemClick(devices[position])
                 }
             }
         }
