@@ -7,7 +7,7 @@ plugins {
 android {
     namespace = "com.mesh.myapplication"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
     defaultConfig {

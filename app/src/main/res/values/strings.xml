@@ -6,4 +6,6 @@
     <string name="btn_scan">Scan Mesh Devices</string>
     <string name="device_type">Mesh Device</string>
     <string name="mac_address">MAC Address</string>
+    <string name="bluetooth_required">Turn on Bluetooth to scan mesh devices</string>
+    <string name="bluetooth_not_supported">This device does not support Bluetooth</string>
 </resources>

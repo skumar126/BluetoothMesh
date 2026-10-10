@@ -9,6 +9,7 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -31,8 +32,8 @@ import java.util.UUID
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
-    private lateinit var bluetoothAdapter: BluetoothAdapter
-    private lateinit var bluetoothLeScanner: BluetoothLeScanner
+    private var bluetoothAdapter: BluetoothAdapter? = null
+    private var bluetoothLeScanner: BluetoothLeScanner? = null
     private val scanResults = mutableListOf<ScanResult>()
     private lateinit var recyclerViewAdapter: DeviceAdapter
 
@@ -51,8 +52,6 @@ class MainActivity : AppCompatActivity() {
         val bluetoothManager =
             getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager.adapter
-        bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
-        //Permission
         checkAnsRequestPermission()
 
         recyclerViewAdapter = DeviceAdapter(scanResults){ clickedItem ->
@@ -77,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         if (!hasPermission()) {
             permissionLauncher.launch(requiredPermission())
         } else {
-            startTimedScan()
+            ensureBluetoothEnabled()
         }
     }
 
@@ -89,8 +88,36 @@ class MainActivity : AppCompatActivity() {
         handler.postDelayed({ stopBleScan() }, 10_000)
     }
 
+    private fun ensureBluetoothEnabled() {
+        val adapter = bluetoothAdapter
+        if (adapter == null) {
+            Toast.makeText(
+                this,
+                getString(R.string.bluetooth_not_supported),
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        if (adapter.isEnabled) {
+            startTimedScan()
+        } else {
+            enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+        }
+    }
+
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     private fun startBluetooth() {
+        val scanner = bluetoothAdapter?.bluetoothLeScanner
+        if (scanner == null) {
+            Toast.makeText(
+                this,
+                getString(R.string.bluetooth_required),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        bluetoothLeScanner = scanner
+
         val meshProvisioningFilter = ScanFilter.Builder()
             .setServiceUuid(ParcelUuid(MESH_PROVISIONING_UUID))
             .build()
@@ -102,7 +129,7 @@ class MainActivity : AppCompatActivity() {
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
 
-        bluetoothLeScanner.startScan(
+        scanner.startScan(
             listOf(meshProvisioningFilter, meshProxyFilter), scanSettings, scanCallback
         )
 
@@ -111,7 +138,7 @@ class MainActivity : AppCompatActivity() {
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     private fun stopBleScan() {
-        bluetoothLeScanner.stopScan(scanCallback)
+        bluetoothLeScanner?.stopScan(scanCallback)
         Log.d("BLE", "Scanning stopped")
     }
 
@@ -159,11 +186,25 @@ class MainActivity : AppCompatActivity() {
     ) { permission ->
         val allGranted = permission.values.all { it }
         if (allGranted) {
-            startTimedScan()
+            ensureBluetoothEnabled()
         } else {
             Toast.makeText(
                 this,
                 "Permission required for Bluetooth",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private val enableBluetoothLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (bluetoothAdapter?.isEnabled == true) {
+            startTimedScan()
+        } else {
+            Toast.makeText(
+                this,
+                getString(R.string.bluetooth_required),
                 Toast.LENGTH_SHORT
             ).show()
         }
